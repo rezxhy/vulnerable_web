@@ -1,0 +1,91 @@
+
+╔═══════════════════════════════════════════════════════════════╗
+║              RAPPORT DE SÉCURITÉ - APPLICATION WEB           ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Date: 2026-01-18 19:42:18
+Application: Vulnerable Web App
+URL: http://localhost
+
+══════════════════════════════════════════════════════════════
+1. VULNÉRABILITÉS IDENTIFIÉES
+══════════════════════════════════════════════════════════════
+
+🔴 CRITIQUE - Brute Force
+   • Description: Aucune protection contre les attaques par force brute
+   • Impact: Compromission de comptes utilisateurs
+   • Recommandation: Implémenter rate limiting (Flask-Limiter)
+   
+🔴 CRITIQUE - NoSQL Injection
+   • Description: Requêtes MongoDB non sanitizées
+   • Impact: Bypass authentification, accès non autorisé
+   • Recommandation: Valider types des inputs, utiliser ORM
+
+🔴 CRITIQUE - Credentials exposés
+   • Description: MONGO_URI en clair dans docker-compose.yml
+   • Impact: Accès direct à la base de données
+   • Recommandation: Utiliser .env + Docker Secrets
+
+🟠 ÉLEVÉE - XSS (Cross-Site Scripting)
+   • Description: Pas de sanitisation des entrées utilisateur
+   • Impact: Vol de session, phishing, malware
+   • Recommandation: Sanitiser inputs, CSP headers
+
+🟠 ÉLEVÉE - Denial of Service
+   • Description: Pas de protection contre flood
+   • Impact: Indisponibilité du service
+   • Recommandation: Rate limiting, WAF, Load balancing
+
+══════════════════════════════════════════════════════════════
+2. SCORE DE SÉCURITÉ
+══════════════════════════════════════════════════════════════
+
+Vulnérabilités critiques: 3
+Vulnérabilités élevées:   2
+Vulnérabilités moyennes:  0
+Vulnérabilités faibles:   0
+
+SCORE GLOBAL: 15/100 (CRITIQUE)
+
+══════════════════════════════════════════════════════════════
+3. PLAN D'ACTION PRIORITAIRE
+══════════════════════════════════════════════════════════════
+
+PRIORITÉ 1 (Urgent):
+  ✓ Déplacer MONGO_URI vers .env
+  ✓ Valider types des inputs (str uniquement)
+  ✓ Implémenter rate limiting
+
+PRIORITÉ 2 (Important):
+  ✓ Sanitiser toutes les entrées utilisateur
+  ✓ Ajouter CSP headers
+  ✓ Hasher les mots de passe (bcrypt)
+
+PRIORITÉ 3 (Recommandé):
+  ✓ Implémenter WAF
+  ✓ Load balancing
+  ✓ Monitoring et alertes
+
+══════════════════════════════════════════════════════════════
+4. EXEMPLES DE CODE CORRIGÉ
+══════════════════════════════════════════════════════════════
+
+# Rate Limiting
+from flask_limiter import Limiter
+limiter = Limiter(app, key_func=lambda: request.remote_addr)
+@app.route('/login', methods=['POST'])
+@limiter.limit("5 per minute")
+def login():
+    ...
+
+# Validation des inputs
+if not isinstance(username, str) or not isinstance(password, str):
+    return jsonify({'error': 'Invalid input'}), 400
+
+# Hachage des mots de passe
+from bcrypt import hashpw, gensalt, checkpw
+hashed = hashpw(password.encode(), gensalt())
+
+══════════════════════════════════════════════════════════════
+Fin du rapport
+══════════════════════════════════════════════════════════════
