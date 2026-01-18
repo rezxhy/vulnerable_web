@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard MongoDB</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logout-btn {
+      background: rgba(255,255,255,0.2);
+      border: 2px solid white;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+
+    .logout-btn:hover {
+      background: white;
+      color: #667eea;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      padding: 30px;
+      background: #f8f9fa;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .stat-card h3 {
+      color: #667eea;
+      font-size: 32px;
+      margin-bottom: 5px;
+    }
+
+    .stat-card p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .collection-tabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 10px;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      background: #f0f0f0;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+
+    .tab:hover {
+      background: #e0e0e0;
+    }
+
+    .tab.active {
+      background: #667eea;
+      color: white;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    th {
+      background: #667eea;
+      color: white;
+      padding: 15px;
+      text-align: left;
+      font-weight: bold;
+      position: sticky;
+      top: 0;
+    }
+
+    td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    tr:hover {
+      background: #f8f9fa;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 50px;
+      font-size: 18px;
+      color: #667eea;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error {
+      background: #fee;
+      color: #c00;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 50px;
+      color: #999;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>
+        <span>🗄️</span>
+        Dashboard MongoDB
+      </h1>
+      <div class="user-info">
+        <span id="username-display">👤 Utilisateur</span>
+        <button class="logout-btn" onclick="logout()">Déconnexion</button>
+      </div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="content">
+      <div class="collection-tabs" id="tabs"></div>
+      <div id="table-content"></div>
+    </div>
+  </div>
+
+  <script>
+    let allData = {};
+    let currentCollection = null;
+
+    // Récupérer le nom d'utilisateur depuis localStorage
+    const username = localStorage.getItem('username');
+    if (!username) {
+      window.location.href = '/';
+    } else {
+      document.getElementById('username-display').textContent = `👤 ${username}`;
+    }
+
+    // Fonction de déconnexion
+    function logout() {
+      localStorage.removeItem('username');
+      window.location.href = '/';
+    }
+
+    // Charger les données
+    async function loadData() {
+      const tableContent = document.getElementById('table-content');
+      tableContent.innerHTML = '<div class="loading"><div class="spinner"></div>Chargement des données...</div>';
+
+      try {
+        const response = await fetch('/data');
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || 'Erreur de chargement');
+        }
+
+        allData = data.collections;
+        displayStats();
+        displayTabs();
+        
+        // Afficher la première collection par défaut
+        const firstCollection = Object.keys(allData)[0];
+        if (firstCollection) {
+          displayCollection(firstCollection);
+        }
+
+      } catch (err) {
+        tableContent.innerHTML = `<div class="error">❌ Erreur : ${err.message}</div>`;
+      }
+    }
+
+    // Afficher les statistiques
+    function displayStats() {
+      const statsDiv = document.getElementById('stats');
+      const collections = Object.keys(allData);
+      const totalDocs = collections.reduce((sum, col) => sum + allData[col].count, 0);
+
+      statsDiv.innerHTML = `
+        <div class="stat-card">
+          <h3>${collections.length}</h3>
+          <p>Collections</p>
+        </div>
+        <div class="stat-card">
+          <h3>${totalDocs}</h3>
+          <p>Documents totaux</p>
+        </div>
+        <div class="stat-card">
+          <h3>audit_db</h3>
+          <p>Base de données</p>
+        </div>
+      `;
+    }
+
+    // Afficher les onglets
+    function displayTabs() {
+      const tabsDiv = document.getElementById('tabs');
+      const collections = Object.keys(allData);
+
+      tabsDiv.innerHTML = collections.map(col => `
+        <button class="tab" onclick="displayCollection('${col}')">${col} (${allData[col].count})</button>
+      `).join('');
+    }
+
+    // Afficher une collection
+    function displayCollection(collectionName) {
+      currentCollection = collectionName;
+      const collection = allData[collectionName];
+      const tableContent = document.getElementById('table-content');
+
+      // Mettre à jour les onglets actifs
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.textContent.startsWith(collectionName)) {
+          tab.classList.add('active');
+        }
+      });
+
+      if (!collection.documents || collection.documents.length === 0) {
+        tableContent.innerHTML = '<div class="no-data">📭 Aucune donnée dans cette collection</div>';
+        return;
+      }
+
+      // Récupérer toutes les clés
+      let allKeys = [...new Set(collection.documents.flatMap(Object.keys))];
+      
+      // Retirer _id de la liste
+      allKeys = allKeys.filter(key => key !== '_id');
+      
+      // Ordre spécifique des colonnes
+      const preferredOrder = [
+        'username', 'password', 
+        'farm_id', 'farm_name', 'country', 'latitude', 'longitude', 
+        'crop_type', 'soil_humidity', 'soil_ph', 'air_temperature', 
+        'ndvi', 'surface_temperature', 'yield_ton_per_hectare'
+      ];
+      
+      // Trier selon l'ordre préféré, puis alphabétique pour les autres
+      allKeys.sort((a, b) => {
+        const indexA = preferredOrder.indexOf(a);
+        const indexB = preferredOrder.indexOf(b);
+        
+        if (indexA !== -1 && indexB !== -1) {
+          return indexA - indexB; // Les deux sont dans l'ordre préféré
+        } else if (indexA !== -1) {
+          return -1; // a est dans l'ordre préféré, b non
+        } else if (indexB !== -1) {
+          return 1; // b est dans l'ordre préféré, a non
+        } else {
+          return a.localeCompare(b); // Alphabétique pour les autres
+        }
+      });
+
+      // Créer le tableau
+      tableContent.innerHTML = `
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                ${allKeys.map(key => `<th>${key}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${collection.documents.map(doc => `
+                <tr>
+                  ${allKeys.map(key => `<td>${formatValue(doc[key])}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // Formater les valeurs
+    function formatValue(value) {
+      if (value === null || value === undefined) return '<em style="color: #999;">null</em>';
+      if (typeof value === 'object') return JSON.stringify(value);
+      return String(value);
+    }
+
+    // Charger au démarrage
+    loadData();
+  </script>
+</body>
+</html>
