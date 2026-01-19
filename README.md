@@ -23,6 +23,4 @@ Etape 5 : Maintenance
 - docker-compose restart backend
 - docker-compose restart frontend
 # ou
-- docker-compose down
-- docker-compose build --no-cache
-- docker-compose up -d
+- docker compose down && docker compose up -d
