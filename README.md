@@ -22,5 +22,9 @@ Etape 4 : Récuperer le lien ngrok et rentrer sur le site
 Etape 5 : Maintenance 
 - docker-compose restart backend
 - docker-compose restart frontend
-# ou
+- ou
 - docker compose down && docker compose up -d
+- ou
+- docker-compose down
+- docker-compose build --no-cache
+- docker-compose up -d
