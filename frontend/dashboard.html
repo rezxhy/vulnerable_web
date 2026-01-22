@@ -3,238 +3,307 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard MongoDB</title>
+  <title>Dashboard MongoDB - CyberTrust</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
     
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #ffffff;
       min-height: 100vh;
-      padding: 20px;
     }
-
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 15px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      overflow: hidden;
+    
+    .main-card {
+      background: #ffffff;
+      box-shadow: 0 4px 20px rgba(0, 102, 204, 0.15);
+      border: 2px solid #0066CC;
     }
-
+    
     .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      background: #0066CC;
+      border-bottom: 2px solid #0066CC;
     }
-
-    .header h1 {
-      font-size: 28px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .logout-btn {
-      background: rgba(255,255,255,0.2);
-      border: 2px solid white;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 25px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: all 0.3s;
-    }
-
-    .logout-btn:hover {
-      background: white;
-      color: #667eea;
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      padding: 30px;
-      background: #f8f9fa;
-    }
-
+    
     .stat-card {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      text-align: center;
+      background: #ffffff;
+      border: 2px solid #0066CC;
+      transition: all 0.3s ease;
     }
-
-    .stat-card h3 {
-      color: #667eea;
-      font-size: 32px;
-      margin-bottom: 5px;
+    
+    .stat-card:hover {
+      border-color: #0052A3;
+      box-shadow: 0 8px 20px rgba(0, 102, 204, 0.2);
+      transform: translateY(-4px);
     }
-
-    .stat-card p {
-      color: #666;
-      font-size: 14px;
-    }
-
-    .content {
-      padding: 30px;
-    }
-
-    .collection-tabs {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 20px;
-      border-bottom: 2px solid #e0e0e0;
-      padding-bottom: 10px;
-    }
-
+    
     .tab {
-      padding: 10px 20px;
-      background: #f0f0f0;
-      border: none;
-      border-radius: 8px 8px 0 0;
-      cursor: pointer;
-      font-weight: bold;
-      transition: all 0.3s;
+      transition: all 0.2s ease;
+      background: #ffffff;
+      border: 2px solid #e5e7eb;
     }
-
+    
     .tab:hover {
-      background: #e0e0e0;
+      background: #f8fafc;
+      border-color: #0066CC;
     }
-
+    
     .tab.active {
-      background: #667eea;
+      background: #000000;
+      color: white;
+      border-color: #000000;
+      font-weight: 600;
+    }
+    
+    table th {
+      background: #0066CC;
       color: white;
     }
-
-    .table-container {
-      overflow-x: auto;
-      border-radius: 10px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    
+    tr {
+      transition: background-color 0.15s ease;
     }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-    }
-
-    th {
-      background: #667eea;
-      color: white;
-      padding: 15px;
-      text-align: left;
-      font-weight: bold;
-      position: sticky;
-      top: 0;
-    }
-
-    td {
-      padding: 12px 15px;
-      border-bottom: 1px solid #e0e0e0;
-    }
-
+    
     tr:hover {
-      background: #f8f9fa;
+      background: #f0f7ff;
     }
-
-    .loading {
-      text-align: center;
-      padding: 50px;
-      font-size: 18px;
-      color: #667eea;
+    
+    .fade-in {
+      animation: fadeIn 0.4s ease-out;
     }
-
+    
+    .slide-up {
+      animation: slideUp 0.4s ease-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
     .spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #667eea;
+      border: 4px solid #e0e7ff;
+      border-top: 4px solid #0066CC;
       border-radius: 50%;
       width: 50px;
       height: 50px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
+      animation: spin 0.8s linear infinite;
     }
-
+    
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-
-    .error {
-      background: #fee;
-      color: #c00;
-      padding: 20px;
-      border-radius: 10px;
-      margin: 20px 0;
+    
+    .btn-logout {
+      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.3);
     }
-
-    .no-data {
+    
+    .btn-logout:hover {
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .icon-container {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .pagination {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .page-btn {
+      padding: 8px 12px;
+      background: #ffffff;
+      border: 2px solid #e5e7eb;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      min-width: 40px;
       text-align: center;
-      padding: 50px;
-      color: #999;
-      font-style: italic;
+    }
+    
+    .page-btn:hover:not(:disabled) {
+      background: #f8fafc;
+      border-color: #0066CC;
+    }
+    
+    .page-btn.active {
+      background: #000000;
+      color: white;
+      border-color: #000000;
+    }
+    
+    .page-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    
+    .page-info {
+      padding: 8px 16px;
+      font-size: 14px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    
+    .cybertrust-text {
+      font-family: 'Orbitron', monospace;
+      font-weight: 800;
+      color: #0066CC;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-shadow: 0 2px 10px rgba(0, 102, 204, 0.3);
     }
   </style>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>
-        <span>🗄️</span>
-        Dashboard MongoDB
-      </h1>
-      <div class="user-info">
-        <span id="username-display">👤 Utilisateur</span>
-        <button class="logout-btn" onclick="logout()">Déconnexion</button>
+<body class="p-4 md:p-6 lg:p-8">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header avec logo EPITA et CyberTrust -->
+    <div class="flex items-center justify-between mb-6 pb-4" style="border-bottom: 2px solid #0066CC;">
+      <img src="/epita_logo.svg" 
+           alt="EPITA" 
+           class="h-8 md:h-10"
+           onerror="this.onerror=null; this.src='/epita_logo.png';">
+      <div class="text-center flex-1">
+        <h2 class="cybertrust-text text-2xl md:text-3xl">CyberTrust</h2>
+        <p class="text-slate-500 text-xs uppercase tracking-wider mt-1">Security Platform</p>
       </div>
+      <div class="w-20 md:w-32"></div>
     </div>
+    
+    <!-- Container principal -->
+    <div class="main-card rounded-xl overflow-hidden fade-in slide-up">
+      <!-- Header -->
+      <div class="header text-white p-6 md:p-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <h1 class="text-xl md:text-2xl font-bold flex items-center gap-3">
+            <div class="p-3 icon-container rounded-lg">
+              <svg class="w-5 h-5 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
+              </svg>
+            </div>
+            <span>Dashboard MongoDB</span>
+          </h1>
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 px-4 py-2 bg-white/20 rounded-lg border-2 border-white/30">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+              <span id="username-display" class="font-semibold text-sm text-white">Utilisateur</span>
+            </div>
+            <button 
+              onclick="logout()" 
+              class="btn-logout px-4 py-2 rounded-lg font-semibold text-sm text-white"
+            >
+              Déconnexion
+            </button>
+          </div>
+        </div>
+      </div>
 
-    <div class="stats" id="stats"></div>
+      <!-- Statistiques -->
+      <div id="stats" class="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 bg-white"></div>
 
-    <div class="content">
-      <div class="collection-tabs" id="tabs"></div>
-      <div id="table-content"></div>
+      <!-- Contenu principal -->
+      <div class="p-6 md:p-8 bg-white">
+	
+	<div class="mb-6">
+  <div class="relative">
+    <span class="absolute inset-y-0 left-0 pl-3 flex items-center">
+      <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+    </span>
+    <input 
+      type="text" 
+      id="search-input" 
+      onkeyup="handleSearch()"
+      placeholder="Rechercher dans cette collection..." 
+      class="block w-full pl-10 pr-3 py-3 border-2 border-slate-200 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 sm:text-sm transition-all"
+    >
+  </div>
+</div>
+
+        <!-- Onglets -->
+        <div id="tabs" class="flex flex-wrap gap-2 mb-6 pb-4" style="border-bottom: 2px solid #0066CC;"></div>
+        
+        <!-- Tableau -->
+        <div id="table-content"></div>
+      </div>
     </div>
   </div>
 
   <script>
     let allData = {};
     let currentCollection = null;
+    let currentPage = 1;
+    let itemsPerPage = 100;
 
-    // Récupérer le nom d'utilisateur depuis localStorage
+    // Récupérer le nom d'utilisateur et le rôle depuis localStorage
     const username = localStorage.getItem('username');
+    const userRole = localStorage.getItem('userRole') || 'user';
+
+    // Ordre STRICT des colonnes selon la collection (PAS alphabétique)
+    const columnOrders = {
+        'users': ['username', 'password', 'role', 'created_at'],
+        'farms': ['farm_id', 'farm_name', 'country', 'latitude', 'longitude', 'crop_type'],
+        'sensors': ['sensor_id', 'farm_id', 'soil_humidity', 'soil_ph', 'air_temperature', 'ndvi']
+    };
+    
     if (!username) {
       window.location.href = '/';
     } else {
-      document.getElementById('username-display').textContent = `👤 ${username}`;
+      document.getElementById('username-display').textContent = username;
     }
 
     // Fonction de déconnexion
     function logout() {
       localStorage.removeItem('username');
+      localStorage.removeItem('userRole');
       window.location.href = '/';
     }
 
     // Charger les données
     async function loadData() {
       const tableContent = document.getElementById('table-content');
-      tableContent.innerHTML = '<div class="loading"><div class="spinner"></div>Chargement des données...</div>';
+      tableContent.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-16">
+          <div class="spinner mb-4"></div>
+          <p class="font-semibold text-lg" style="color: #0066CC;">Chargement des données...</p>
+        </div>
+      `;
 
       try {
-        const response = await fetch('/data');
+        const response = await fetch('/data', {
+          headers: {
+            'X-User-Role': userRole
+          }
+        });
         const data = await response.json();
 
         if (!data.success) {
@@ -252,7 +321,19 @@
         }
 
       } catch (err) {
-        tableContent.innerHTML = `<div class="error">❌ Erreur : ${err.message}</div>`;
+        tableContent.innerHTML = `
+          <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+            <div class="flex items-center gap-3">
+              <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <div>
+                <h3 class="text-red-800 font-semibold text-sm">Erreur de chargement</h3>
+                <p class="text-red-600 text-sm mt-1">${err.message}</p>
+              </div>
+            </div>
+          </div>
+        `;
       }
     }
 
@@ -263,20 +344,68 @@
       const totalDocs = collections.reduce((sum, col) => sum + allData[col].count, 0);
 
       statsDiv.innerHTML = `
-        <div class="stat-card">
-          <h3>${collections.length}</h3>
-          <p>Collections</p>
+        <div class="stat-card rounded-xl p-6 text-center">
+          <div class="text-4xl md:text-5xl font-bold mb-2" style="color: #0066CC;">${collections.length}</div>
+          <p class="text-slate-700 text-sm font-semibold">Collections</p>
         </div>
-        <div class="stat-card">
-          <h3>${totalDocs}</h3>
-          <p>Documents totaux</p>
+        <div class="stat-card rounded-xl p-6 text-center">
+          <div class="text-4xl md:text-5xl font-bold mb-2" style="color: #0066CC;">${totalDocs}</div>
+          <p class="text-slate-700 text-sm font-semibold">Documents totaux</p>
         </div>
-        <div class="stat-card">
-          <h3>audit_db</h3>
-          <p>Base de données</p>
+        <div class="stat-card rounded-xl p-6 text-center">
+          <div class="text-2xl md:text-3xl font-bold mb-2" style="color: #0066CC;">audit_db</div>
+          <p class="text-slate-700 text-sm font-semibold">Base de données</p>
         </div>
       `;
     }
+    // Fonction déclenchée à chaque touche pressée dans la recherche
+function handleSearch() {
+  const searchTerm = document.getElementById('search-input').value.toLowerCase();
+  renderTable(currentCollection, searchTerm);
+}
+
+function renderTable(collectionName, filter = "") {
+    const collection = allData[collectionName];
+    const tableContent = document.getElementById('table-content');
+
+    // Filtrage des lignes selon la recherche
+    const filteredDocs = collection.documents.filter(doc => {
+        return Object.values(doc).some(val => 
+            String(val).toLowerCase().includes(filter.toLowerCase())
+        );
+    });
+
+    // --- LOGIQUE DE TRI DES COLONNES (Le changement est ici) ---
+    let allKeys = [...new Set(collection.documents.flatMap(Object.keys))].filter(k => k !== '_id');
+    
+    if (columnOrders[collectionName]) {
+        const sorted = columnOrders[collectionName].filter(key => allKeys.includes(key));
+        const extra = allKeys.filter(key => !columnOrders[collectionName].includes(key));
+        allKeys = [...sorted, ...extra];
+    } else {
+        allKeys.sort();
+    }
+    // ----------------------------------------------------------
+
+    // Rendu du tableau (le reste de votre code ne change pas)
+    tableContent.innerHTML = `
+    <div class="rounded-xl overflow-hidden" style="border: 2px solid #0066CC;">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr>${allKeys.map(key => `<th class="px-4 py-3 text-left text-white font-bold text-xs">${key}</th>`).join('')}</tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-slate-100">
+            ${filteredDocs.map((doc, idx) => `
+              <tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}">
+                ${allKeys.map(key => `<td class="px-4 py-3 text-sm text-slate-700">${formatValue(doc[key])}</td>`).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
 
     // Afficher les onglets
     function displayTabs() {
@@ -284,7 +413,12 @@
       const collections = Object.keys(allData);
 
       tabsDiv.innerHTML = collections.map(col => `
-        <button class="tab" onclick="displayCollection('${col}')">${col} (${allData[col].count})</button>
+        <button 
+          class="tab px-4 py-2 rounded-lg font-semibold text-sm ${col === Object.keys(allData)[0] ? 'active' : 'text-slate-800'}"
+          onclick="displayCollection('${col}')"
+        >
+          ${col} <span class="ml-2 px-2 py-1 bg-slate-100 rounded text-xs font-normal">${allData[col].count}</span>
+        </button>
       `).join('');
     }
 
@@ -297,13 +431,20 @@
       // Mettre à jour les onglets actifs
       document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.remove('active');
-        if (tab.textContent.startsWith(collectionName)) {
+        if (tab.textContent.includes(collectionName)) {
           tab.classList.add('active');
         }
       });
 
       if (!collection.documents || collection.documents.length === 0) {
-        tableContent.innerHTML = '<div class="no-data">📭 Aucune donnée dans cette collection</div>';
+        tableContent.innerHTML = `
+          <div class="text-center py-16">
+            <svg class="w-12 h-12 text-slate-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+            </svg>
+            <p class="text-slate-500 font-medium">Aucune donnée dans cette collection</p>
+          </div>
+        `;
         return;
       }
 
@@ -313,55 +454,52 @@
       // Retirer _id de la liste
       allKeys = allKeys.filter(key => key !== '_id');
       
-      // Ordre spécifique des colonnes
-      const preferredOrder = [
-        'username', 'password', 
-        'farm_id', 'farm_name', 'country', 'latitude', 'longitude', 
-        'crop_type', 'soil_humidity', 'soil_ph', 'air_temperature', 
-        'ndvi', 'surface_temperature', 'yield_ton_per_hectare'
-      ];
-      
-      // Trier selon l'ordre préféré, puis alphabétique pour les autres
-      allKeys.sort((a, b) => {
-        const indexA = preferredOrder.indexOf(a);
-        const indexB = preferredOrder.indexOf(b);
+      // Si la collection a un ordre défini, utiliser UNIQUEMENT cet ordre
+      if (columnOrders[collectionName]) {
+        // Garder UNIQUEMENT les colonnes qui existent dans les données
+        allKeys = columnOrders[collectionName].filter(col => allKeys.includes(col));
         
-        if (indexA !== -1 && indexB !== -1) {
-          return indexA - indexB; // Les deux sont dans l'ordre préféré
-        } else if (indexA !== -1) {
-          return -1; // a est dans l'ordre préféré, b non
-        } else if (indexB !== -1) {
-          return 1; // b est dans l'ordre préféré, a non
-        } else {
-          return a.localeCompare(b); // Alphabétique pour les autres
-        }
-      });
+        // Ajouter les colonnes non prévues à la fin (au cas où)
+        const extraKeys = collection.documents
+          .flatMap(Object.keys)
+          .filter(key => key !== '_id' && !columnOrders[collectionName].includes(key));
+        allKeys = [...new Set([...allKeys, ...extraKeys])];
+      } else {
+        // Pour les autres collections, ordre alphabétique
+        allKeys.sort();
+      }
 
       // Créer le tableau
       tableContent.innerHTML = `
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                ${allKeys.map(key => `<th>${key}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
-              ${collection.documents.map(doc => `
+        <div class="rounded-xl overflow-hidden" style="border: 2px solid #0066CC;">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
                 <tr>
-                  ${allKeys.map(key => `<td>${formatValue(doc[key])}</td>`).join('')}
+                  ${allKeys.map(key => `<th class="px-4 py-3 text-left text-white font-bold text-xs">${key}</th>`).join('')}
                 </tr>
-              `).join('')}
-            </tbody>
-          </table>
+              </thead>
+              <tbody class="bg-white divide-y divide-slate-100">
+                ${collection.documents.map((doc, idx) => `
+                  <tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}">
+                    ${allKeys.map(key => `<td class="px-4 py-3 text-sm text-slate-700">${formatValue(doc[key])}</td>`).join('')}
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
       `;
     }
 
     // Formater les valeurs
     function formatValue(value) {
-      if (value === null || value === undefined) return '<em style="color: #999;">null</em>';
-      if (typeof value === 'object') return JSON.stringify(value);
+      if (value === null || value === undefined) {
+        return '<span class="text-slate-400 italic">null</span>';
+      }
+      if (typeof value === 'object') {
+        return '<code class="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-700">' + JSON.stringify(value) + '</code>';
+      }
       return String(value);
     }
 
