@@ -35,7 +35,8 @@ def login():
         return jsonify({
             'message': 'Connexion réussie !',
             'success': True,
-            'username': username
+            'username': username,
+            'role': user.get('role', 'user')  # Retourner le rôle
         })
     else:
         return jsonify({
@@ -47,16 +48,23 @@ def login():
 def get_data():
     """Récupère toutes les données de toutes les collections"""
     try:
+        # Récupérer le rôle depuis le header (envoyé par le frontend)
+        user_role = request.headers.get('X-User-Role', 'user')
+        
         all_data = {}
         
         # Récupérer toutes les collections
         collections = db.list_collection_names()
         
         for collection_name in collections:
+            # Si l'utilisateur n'est pas admin, skip la collection users
+            if user_role != 'administrator' and collection_name == 'users':
+                continue
+                
             collection = db[collection_name]
             # Convertir ObjectId en string pour JSON
             documents = []
-            for doc in collection.find().limit(100):  # Limite à 100 docs par collection
+            for doc in collection.find().limit(1000):  # Limite à 1000 docs par collection
                 doc['_id'] = str(doc['_id'])
                 documents.append(doc)
             
@@ -68,7 +76,8 @@ def get_data():
         return jsonify({
             'success': True,
             'database': 'audit_db',
-            'collections': all_data
+            'collections': all_data,
+            'user_role': user_role
         })
     
     except Exception as e:
